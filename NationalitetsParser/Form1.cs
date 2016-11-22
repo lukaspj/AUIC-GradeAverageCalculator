@@ -37,7 +37,7 @@ namespace NationalitetsParser
          excelSheet.SetActiveWorksheetByName("Sheet1");
 
          Range rows = excelSheet.GetRows();
-         string SortText = excelSheet.GetTextByColumnHeader(rows[2], "CPR ");
+         string SortText = excelSheet.GetTextByColumnHeader(rows[2], "CPR");
          for (int i = 2; SortText != null && SortText.Equals("") != true; i++)
          {
             string studieNmr = excelSheet.GetTextByColumnHeader(rows[i], "STUDIENR");
@@ -46,7 +46,7 @@ namespace NationalitetsParser
             {
                if (!mStudents.ContainsKey(studieNmr))
                {
-                  string cpr = excelSheet.GetTextByColumnHeader(rows[i], "CPR ");
+                  string cpr = excelSheet.GetTextByColumnHeader(rows[i], "CPR");
                   string surname = excelSheet.GetTextByColumnHeader(rows[i], "EFTERNAVN");
                   string lineofstudy = excelSheet.GetTextByColumnHeader(rows[i], "UDDANNELSENSNAVN");
                   mStudents[studieNmr] = new Student(cpr, studieNmr, name, surname, lineofstudy);
@@ -57,8 +57,12 @@ namespace NationalitetsParser
                string semester = excelSheet.GetTextByColumnHeader(rows[i], "TERM_FORKORT");
                string course = excelSheet.GetTextByColumnHeader(rows[i], "AKTIVITET");
                string split = excelSheet.GetTextByColumnHeader(rows[i], "OVERS_FORTOLKET_RES2");
+
+               if (ects != -1)
+               mStudents[studieNmr].AddEcts(ects);
+
                if (grade == -1)
-                  continue;
+               continue;
                int parseTest;
                Grade theGrade;
                //if (split != "bestået" && int.TryParse(split, out parseTest))
@@ -71,9 +75,10 @@ namespace NationalitetsParser
                //else
                   theGrade = new Grade(course, semester, grade, ects, passed);
                mStudents[studieNmr].AddGrade(theGrade);
+               
             }
 
-            SortText = excelSheet.GetTextByColumnHeader(rows[i + 1], "CPR ");
+            SortText = excelSheet.GetTextByColumnHeader(rows[i + 1], "CPR");
          }
       }
 
@@ -116,6 +121,7 @@ namespace NationalitetsParser
       {
          Range row = pWrapper.GetRows()[pCurRow];
          float totalECTS = pStudent.GetTotalEcts();
+         float totalECTS2 = pStudent.GetTotalEcts2();
          float totalWeight = pStudent.GetTotalWeight();
          pWrapper.SetCellsByColumnHeader(row, "StudieNmr", pStudent.StudyNmr);
          pWrapper.SetCellsByColumnHeader(row, "Fornavn", pStudent.Fornavn);
@@ -124,7 +130,7 @@ namespace NationalitetsParser
             pWrapper.SetCellsByColumnHeader(row, "Gennemsnit", totalWeight / totalECTS);
          else
             pWrapper.SetCellsByColumnHeader(row, "Gennemsnit", "0");
-        pWrapper.SetCellsByColumnHeader(row, "ECTS i alt", totalECTS.ToString());
+        pWrapper.SetCellsByColumnHeader(row, "ECTS i alt", totalECTS2.ToString());
         }
 
       private void OutputTotal(ExcelWrapper pWrapper, int pCurRow, Student pStudent)
@@ -177,6 +183,7 @@ namespace NationalitetsParser
          public string Fornavn { get; private set; }
          public string Efternavn { get; private set; }
          public string LineOfStudy { get; private set; }
+         public float ECTS;
 
          public Student(string pCpr, string pStudyNmr, string pName, string pSurname, string pLineOfStudy)
          {
@@ -187,6 +194,7 @@ namespace NationalitetsParser
             LineOfStudy = pLineOfStudy;
 
             mGrades = new List<Grade>();
+            ECTS = 0;
          }
 
          public float GetTotalEcts()
@@ -194,7 +202,17 @@ namespace NationalitetsParser
             return mGrades.Sum(pGrade => float.Parse(pGrade.Ects));
          }
 
-         public void AddGrade(Grade pGrade)
+         public void AddEcts(float Ects)
+            {
+                ECTS = ECTS + Ects;
+            }
+
+         public float GetTotalEcts2()
+         {
+            return ECTS;
+         }
+
+            public void AddGrade(Grade pGrade)
          {
             if (pGrade.Result.Equals("B") || pGrade.Result.Equals("IB"))
                return;
